@@ -1,52 +1,56 @@
 #!/usr/bin/python3
 """
-Python script that exports data in the JSON format
+Module to fetch user information and export TODO list to a CSV file
 """
-import json
+import csv
 import requests
+from sys import argv
 
 
-def get_all_users():
+def get_employee_info(employee_id):
     """
-    Get the list of all users
+    Get employee information by employee ID
     """
-    url = "https://jsonplaceholder.typicode.com/users"
+    url = f'https://jsonplaceholder.typicode.com/users/{employee_id}'
     response = requests.get(url)
     return response.json()
 
 
-def get_user_todos(user_id):
+def get_employee_todos(employee_id):
     """
-    Get the TODO list for a given user ID
+    Get the TODO list of the employee by employee ID
     """
-    url = "https://jsonplaceholder.typicode.com/todos"
-    response = requests.get(url, params={"userId": user_id})
+    url = f'https://jsonplaceholder.typicode.com/users/{employee_id}/todos'
+    response = requests.get(url)
     return response.json()
 
 
-def export_all_todos_to_json(users):
+def export_to_csv(employee_id, username, todos):
     """
-    Export all users' TODO lists to a JSON file
+    Export TODO list to a CSV file
     """
-    data = {
-        user["id"]: [
-            {
-                "task": todo["title"],
-                "completed": todo["completed"],
-                "username": user["username"]
-            } for todo in get_user_todos(user["id"])
-        ] for user in users
-    }
-    with open("todo_all_employees.json", "w") as jsonfile:
-        json.dump(data, jsonfile)
+    filename = f'{employee_id}.csv'
+    with open(filename, mode='w') as file:
+        file_writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
+        for todo in todos:
+            rowData = [employee_id, username, todo['completed'], todo['title']]
+            file_writer.writerow(rowData)
 
 
-def main():
+def main(employee_id):
     """
-    Main function to fetch users and their TODO lists, then export to JSON
+    Main function to fetch user info and TODO list, then export to CSV
     """
-    users = get_all_users()
-    export_all_todos_to_json(users)
+    user = get_employee_info(employee_id)
+    username = user.get("username")
+
+    todos = get_employee_todos(employee_id)
+
+    export_to_csv(employee_id, username, todos)
+
 
 if __name__ == "__main__":
-    main()
+    if len(argv) > 1:
+        main(argv[1])
+    else:
+        print("Usage: ./1-export_to_CSV.py <employee_id>")
