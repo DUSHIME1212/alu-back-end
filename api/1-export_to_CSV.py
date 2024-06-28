@@ -1,50 +1,52 @@
 #!/usr/bin/python3
-""""Module"""
-
-import csv
+"""
+Python script that exports data in the JSON format
+"""
 import json
 import requests
-from sys import argv
 
+
+def get_all_users():
+    """
+    Get the list of all users
+    """
+    url = "https://jsonplaceholder.typicode.com/users"
+    response = requests.get(url)
+    return response.json()
+
+
+def get_user_todos(user_id):
+    """
+    Get the TODO list for a given user ID
+    """
+    url = "https://jsonplaceholder.typicode.com/todos"
+    response = requests.get(url, params={"userId": user_id})
+    return response.json()
+
+
+def export_all_todos_to_json(users):
+    """
+    Export all users' TODO lists to a JSON file
+    """
+    data = {
+        user["id"]: [
+            {
+                "task": todo["title"],
+                "completed": todo["completed"],
+                "username": user["username"]
+            } for todo in get_user_todos(user["id"])
+        ] for user in users
+    }
+    with open("todo_all_employees.json", "w") as jsonfile:
+        json.dump(data, jsonfile)
+
+
+def main():
+    """
+    Main function to fetch users and their TODO lists, then export to JSON
+    """
+    users = get_all_users()
+    export_all_todos_to_json(users)
 
 if __name__ == "__main__":
-    """
-        request user info by employee ID
-    """
-    request_employee = requests.get(
-        'https://jsonplaceholder.typicode.com/users/{}/'.format(argv[1]))
-    """
-        convert json to dictionary
-    """
-    user = json.loads(request_employee.text)
-    """
-        extract username
-    """
-    username = user.get("username")
-
-    """
-        request user's TODO list
-    """
-    request_todos = requests.get(
-        'https://jsonplaceholder.typicode.com/users/{}/todos'.format(argv[1]))
-    """
-        dictionary to store task status(completed) in boolean format
-    """
-    tasks = {}
-    """
-        convert json to list of dictionaries
-    """
-    user_todos = json.loads(request_todos.text)
-    """
-        loop through dictionary & get completed tasks
-    """
-    for dictionary in user_todos:
-        tasks.update({dictionary.get("title"): dictionary.get("completed")})
-
-    """
-        export to CSV
-    """
-    with open('{}.csv'.format(argv[1]), mode='w') as file:
-        file_editor = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
-        for k, v in tasks.items():
-            file_editor.writerow([argv[1], username, v, k])
+    main()
